@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "950897918709",
+    "project_id": "registration-form-flutte-74c5d",
+    "storage_bucket": "registration-form-flutte-74c5d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:950897918709:android:725db16914ef71308bbbbc",
+        "android_client_info": {
+          "package_name": "com.edu.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCIum3rpUKV9sOuQSUAoEWyTuhq_BBTj9o"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

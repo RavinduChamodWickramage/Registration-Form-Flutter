@@ -1,3 +1,5 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 class RegistrationForm extends StatefulWidget {
@@ -13,12 +15,14 @@ class _RegistrationFormState extends State<RegistrationForm> {
   final _confirmPasswordController = TextEditingController();
   bool _isPasswordVisible = false;
   bool _isConfirmedPasswordVisible = false;
+  bool _isLoading = false;
 
-  // Add variables to store real-time values
+  // Firebase Authentication and Firestore instances
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
   String _nameValue = '';
   String _emailValue = '';
-  String _passwordValue = '';
-  String _confirmPasswordValue = '';
 
   @override
   void initState() {
@@ -34,16 +38,6 @@ class _RegistrationFormState extends State<RegistrationForm> {
         _emailValue = _emailController.text;
       });
     });
-    _passwordController.addListener(() {
-      setState(() {
-        _passwordValue = _passwordController.text;
-      });
-    });
-    _confirmPasswordController.addListener(() {
-      setState(() {
-        _confirmPasswordValue = _confirmPasswordController.text;
-      });
-    });
   }
 
   @override
@@ -55,18 +49,53 @@ class _RegistrationFormState extends State<RegistrationForm> {
     super.dispose();
   }
 
-  void _submitForm() {
+  void _submitForm() async {
     if (_formKey.currentState!.validate()) {
-      print('Form Submitted');
-      print('Name: ${_nameController.text}');
-      print('Email: ${_emailController.text}');
+      setState(() {
+        _isLoading = true;
+      });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Registration Successful!'),
-          backgroundColor: Colors.green,
-        ),
-      );
+      try {
+        // Step 1: Create a user with Firebase Authentication
+        UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
+          email: _emailController.text,
+          password: _passwordController.text,
+        );
+
+        // Step 2: Store user data in Firestore
+        await _firestore.collection('users').doc(userCredential.user!.uid).set({
+          'name': _nameController.text,
+          'email': _emailController.text,
+          'uid': userCredential.user!.uid,
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Registration Successful!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        _formKey.currentState!.reset();
+      } on FirebaseAuthException catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.message ?? 'An error occurred. Please try again.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      } finally {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -181,7 +210,6 @@ class _RegistrationFormState extends State<RegistrationForm> {
                         borderRadius: BorderRadius.circular(10),
                       ),
                     ),
-
                     obscureText: !_isConfirmedPasswordVisible,
                     validator: (value) {
                       if (value == null || value.isEmpty) {
@@ -196,23 +224,20 @@ class _RegistrationFormState extends State<RegistrationForm> {
                   SizedBox(height: 24),
 
                   ElevatedButton(
-                    onPressed: _submitForm,
+                    onPressed: _isLoading ? null : _submitForm,
                     style: ElevatedButton.styleFrom(
                       padding: EdgeInsets.symmetric(vertical: 16),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
                     ),
-                    child: Text(
-                      'Register',
-                      style: TextStyle(fontSize: 18),
-                    ),
+                    child: _isLoading
+                        ? CircularProgressIndicator()
+                        : Text('Register', style: TextStyle(fontSize: 18)),
                   ),
                 ],
               ),
             ),
-
-            // Real-time Input Display Section
             SizedBox(height: 32),
             Container(
               padding: EdgeInsets.all(16),
@@ -236,9 +261,6 @@ class _RegistrationFormState extends State<RegistrationForm> {
                   SizedBox(height: 4),
                   Text('Email: $_emailValue'),
                   SizedBox(height: 4),
-                  Text('Password: $_passwordValue'),
-                  SizedBox(height: 4),
-                  Text('Confirm Password: $_confirmPasswordValue'),
                 ],
               ),
             ),
